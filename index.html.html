@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galleria Hermanos Arroyo</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="header">
+        <h1 class="header-title">Galleria Hermanos Arroyo</h1>
+    </header>
+    <div class="container">
+        <!-- Sección de búsqueda -->
+        <section id="searchSection">
+            <h2>Buscar Gallo</h2>
+            <form id="searchForm" class="search-form">
+                <label for="searchNumeroPlaca">Número de Placa:</label>
+                <input type="number" id="searchNumeroPlaca" name="searchNumeroPlaca" required>
+                <button type="submit" class="btn btn-primary">Buscar</button>
+                <button type="button" id="clearSearch" class="btn btn-secondary">Borrar</button>
+            </form>
+            <div id="searchResult" class="search-result">
+                <!-- Aquí se mostrará el resultado de la búsqueda -->
+            </div>
+        </section>
+
+        <!-- Formulario de ingreso de datos -->
+        <form id="galloForm" class="gallo-form">
+            <input type="hidden" id="updateIndex"> <!-- Campo oculto para almacenar el índice del gallo a actualizar -->
+            <h2>Agregar / Actualizar Gallo</h2>
+            <label for="padre">Padre:</label>
+            <input type="text" id="padre" name="padre" required>
+
+            <label for="madre">Madre:</label>
+            <input type="text" id="madre" name="madre" required>
+
+            <label for="numeroPlaca">Número de Placa:</label>
+            <input type="number" id="numeroPlaca" name="numeroPlaca" required>
+
+            <label for="genero">Género:</label>
+            <input type="text" id="genero" name="genero" required>
+
+            <label for="observaciones">Observaciones:</label>
+            <textarea id="observaciones" name="observaciones" rows="4"></textarea>
+
+            <label for="foto">Foto:</label>
+            <input type="file" id="foto" name="foto" accept="image/*">
+
+            <button type="submit" class="btn btn-primary">Guardar</button>
+        </form>
+
+        <!-- Tabla de gallos -->
+        <table id="gallosTable" class="gallos-table">
+            <thead>
+                <tr>
+                    <th>Padre</th>
+                    <th>Madre</th>
+                    <th>Número de Placa</th>
+                    <th>Género</th>
+                    <th>Observaciones</th>
+                    <th>Foto</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Los datos de los gallos se agregarán aquí -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        let gallos = JSON.parse(localStorage.getItem('gallos')) || [];
+
+        // Función para cargar los datos del localStorage
+        function loadGallos() {
+            const tableBody = document.querySelector('#gallosTable tbody');
+            tableBody.innerHTML = ''; // Limpia la tabla antes de cargar los datos
+            gallos.forEach((gallo, index) => {
+                const newRow = tableBody.insertRow();
+                newRow.insertCell().textContent = gallo.padre;
+                newRow.insertCell().textContent = gallo.madre;
+                newRow.insertCell().textContent = gallo.numeroPlaca;
+                newRow.insertCell().textContent = gallo.genero;
+                newRow.insertCell().textContent = gallo.observaciones;
+                const imgCell = newRow.insertCell();
+                const img = document.createElement('img');
+                img.src = gallo.foto;
+                img.alt = 'Foto del gallo';
+                img.style.width = '100px'; // Ajusta el tamaño de la imagen
+                imgCell.appendChild(img);
+                const actionsCell = newRow.insertCell();
+                const updateButton = document.createElement('button');
+                updateButton.textContent = 'Actualizar';
+                updateButton.classList.add('btn', 'btn-warning');
+                updateButton.addEventListener('click', () => fillFormForUpdate(index));
+                actionsCell.appendChild(updateButton);
+            });
+        }
+
+        // Función para llenar el formulario para actualización
+        function fillFormForUpdate(index) {
+            const gallo = gallos[index];
+            document.getElementById('padre').value = gallo.padre;
+            document.getElementById('madre').value = gallo.madre;
+            document.getElementById('numeroPlaca').value = gallo.numeroPlaca;
+            document.getElementById('genero').value = gallo.genero;
+            document.getElementById('observaciones').value = gallo.observaciones;
+            document.getElementById('foto').value = ''; // No se puede establecer el valor de un campo de archivo
+            document.getElementById('updateIndex').value = index;
+        }
+
+        // Función para guardar los datos en el localStorage
+        function saveGallo(gallo, index) {
+            if (index !== undefined) {
+                // Actualizar gallo existente
+                gallos[index] = gallo;
+            } else {
+                // Añadir nuevo gallo
+                gallos.push(gallo);
+            }
+            localStorage.setItem('gallos', JSON.stringify(gallos));
+        }
+
+        // Función para buscar un gallo por número de placa
+        function searchGallo(numeroPlaca) {
+            return gallos.find(gallo => gallo.numeroPlaca === numeroPlaca);
+        }
+
+        document.getElementById('galloForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const padre = document.getElementById('padre').value;
+            const madre = document.getElementById('madre').value;
+            const numeroPlaca = document.getElementById('numeroPlaca').value;
+            const genero = document.getElementById('genero').value;
+            const observaciones = document.getElementById('observaciones').value;
+            const fotoInput = document.getElementById('foto');
+            const foto = fotoInput.files.length > 0 ? URL.createObjectURL(fotoInput.files[0]) : ''; // Crear URL temporal para la imagen
+
+            const gallo = {
+                padre,
+                madre,
+                numeroPlaca,
+                genero,
+                observaciones,
+                foto
+            };
+
+            const updateIndex = document.getElementById('updateIndex').value;
+            saveGallo(gallo, updateIndex !== '' ? parseInt(updateIndex) : undefined);
+
+            loadGallos(); // Recargar los datos de la tabla
+
+            document.getElementById('galloForm').reset();
+            document.getElementById('updateIndex').value = ''; // Limpiar el índice de actualización
+        });
+
+        document.getElementById('searchForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const numeroPlaca = document.getElementById('searchNumeroPlaca').value;
+            const gallo = searchGallo(numeroPlaca);
+
+            const searchResult = document.getElementById('searchResult');
+            searchResult.innerHTML = '';
+
+            if (gallo) {
+                searchResult.innerHTML = `
+                    <h3>Resultado de la Búsqueda</h3>
+                    <p><strong>Padre:</strong> ${gallo.padre}</p>
+                    <p><strong>Madre:</strong> ${gallo.madre}</p>
+                    <p><strong>Número de Placa:</strong> ${gallo.numeroPlaca}</p>
+                    <p><strong>Género:</strong> ${gallo.genero}</p>
+                    <p><strong>Observaciones:</strong> ${gallo.observaciones}</p>
+                    <p><strong>Foto:</strong></p>
+                    <img src="${gallo.foto}" alt="Foto del gallo" style="width: 200px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+                `;
+            } else {
+                searchResult.innerHTML = `<p>No se encontraron resultados para el número de placa ${numeroPlaca}.</p>`;
+            }
+        });
+
+        // Función para borrar la búsqueda
+        function clearSearch() {
+            document.getElementById('searchNumeroPlaca').value = '';
+            document.getElementById('searchResult').innerHTML = '';
+        }
+
+        document.getElementById('clearSearch').addEventListener('click', clearSearch);
+
+        // Cargar los datos cuando la página se carga
+        window.onload = loadGallos;
+    </script>
+</body>
+</html>
+
